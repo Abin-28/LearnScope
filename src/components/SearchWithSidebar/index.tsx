@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FiSearch } from 'react-icons/fi';
+import Image from 'next/image';
 
 type ResultType = 'text' | 'video' | 'image';
 
@@ -19,14 +20,14 @@ export default function SearchWithSidebar() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
 
-  const doSearch = async () => {
+  const doSearch = useCallback(async () => {
     if (!query.trim()) return;
     setLoading(true);
     try {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query, filter })
       });
       const data = await res.json();
       const safe: SearchResult[] = Array.isArray(data?.results) ? data.results : [];
@@ -36,7 +37,14 @@ export default function SearchWithSidebar() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, filter]);
+
+  // Trigger search when filter changes and we have results
+  useEffect(() => {
+    if (results.length > 0 && query.trim()) {
+      doSearch();
+    }
+  }, [filter, doSearch, query, results.length]);
 
   const filtered = results.filter(r => filter === 'all' ? true : r.type === filter);
   const hasVideos = results.some(r => r.type === 'video');
@@ -96,7 +104,7 @@ export default function SearchWithSidebar() {
             )}
           </div>
         )}
-        <div className={filter === 'image' ? "space-y-6" : filter === 'text' ? "space-y-6" : "grid grid-cols-1 md:grid-cols-2 gap-6"}>
+        <div className={filter === 'text' ? "space-y-6" : "grid grid-cols-1 md:grid-cols-2 gap-6"}>
           {filtered.map((item, index) => (
             <div key={`${item.url}-${index}`} className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden ${item.type === 'text' && filter === 'text' ? 'border-l-4 border-blue-500' : ''}`}>
               {item.type === 'video' && (
@@ -116,9 +124,11 @@ export default function SearchWithSidebar() {
               )}
               {item.type === 'image' && (
                 <div className="relative">
-                  <img 
+                  <Image 
                     src={item.url} 
                     alt={item.title} 
+                    width={800}
+                    height={256}
                     className="w-full h-64 object-cover"
                     onError={(e) => {
                       // Fallback for broken images

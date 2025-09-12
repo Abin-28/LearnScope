@@ -21,7 +21,7 @@ async function searchWikipedia(query: string) {
   };
 }
 
-async function searchGoogleImages(query: string) {
+async function searchGoogleImages(query: string, filter?: string) {
   try {
     // Google Images search URL
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch&tbs=isz:m`;
@@ -37,7 +37,8 @@ async function searchGoogleImages(query: string) {
     const imageMatches = html.match(/\["https:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp)"/g);
     if (!imageMatches) return [];
     
-    return imageMatches.slice(0, 5).map((match, index) => {
+    const imageCount = filter === 'image' ? 6 : 5;
+    return imageMatches.slice(0, imageCount).map((match, index) => {
       const url = match.replace(/^\["|"$/g, '');
       return {
         type: 'image' as const,
@@ -122,7 +123,7 @@ async function searchYouTubePiped(query: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json();
+    const { query, filter } = await request.json();
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Missing query' }, { status: 400 });
     }
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
         searchGoogleVideos(query),
         searchYouTubePiped(query)
       ]).then(results => results.flat()),
-      searchGoogleImages(query)
+      searchGoogleImages(query, filter)
     ]);
 
     const results = [
