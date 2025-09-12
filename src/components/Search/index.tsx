@@ -33,10 +33,18 @@ export function Search() {
         body: JSON.stringify({ query }),
       });
 
+      if (!response.ok) {
+        console.error('Search failed with status:', response.status);
+        setResults([]);
+        return;
+      }
+
       const data = await response.json();
-      setResults(data.results);
+      const safeResults: SearchResult[] = Array.isArray(data?.results) ? data.results : [];
+      setResults(safeResults);
     } catch (error) {
       console.error('Search failed:', error);
+      setResults([]);
     } finally {
       setIsSearching(false);
     }

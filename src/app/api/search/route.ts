@@ -1,81 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+async function searchWikipedia(query: string) {
+  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`;
+  const searchRes = await fetch(searchUrl, { next: { revalidate: 60 } });
+  const searchData = await searchRes.json();
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+  const first = searchData?.query?.search?.[0];
+  if (!first) return null;
 
-async function searchYouTube(query: string) {
-  const response = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=3&q=${encodeURIComponent(
-      query
-    )}&key=${YOUTUBE_API_KEY}`
-  );
-  const data = await response.json();
-  
-  return data.items.map((item: any) => ({
-    type: 'video',
-    title: item.snippet.title,
-    description: item.snippet.description,
-    url: `https://www.youtube.com/embed/${item.id.videoId}`,
-    thumbnail: item.snippet.thumbnails.high.url,
-  }));
+  const title = first.title;
+  const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+  const sumRes = await fetch(summaryUrl, { next: { revalidate: 60 } });
+  const sum = await sumRes.json();
+
+  return {
+    type: 'text' as const,
+    title: sum?.title || title,
+    description: sum?.extract || first.snippet?.replace(/<[^>]+>/g, ''),
+    url: sum?.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`
+  };
 }
 
-async function searchImages(query: string) {
-  const response = await fetch(
-    `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CSE_ID}&q=${encodeURIComponent(
-      query
-    )}&searchType=image&num=3`
-  );
-  const data = await response.json();
-  
-  return data.items.map((item: any) => ({
-    type: 'image',
-    title: item.title,
-    url: item.link,
-  }));
+async function searchWikimediaImages(query: string) {
+  try {
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=3&prop=imageinfo&iiprop=url&format=json&origin=*`;
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    const data = await res.json();
+    const pages = data?.query?.pages ? Object.values<any>(data.query.pages) : [];
+    return pages
+      .map((p: any) => p?.imageinfo?.[0]?.url)
+      .filter(Boolean)
+      .map((imgUrl: string) => ({
+        type: 'image' as const,
+        title: query,
+        url: imgUrl,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+async function tryPipedInstance(instanceBase: string, query: string) {
+  try {
+    const url = `${instanceBase}/api/v1/search?q=${encodeURIComponent(query)}&region=US`;
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      return [];
+    }
+    const data = await res.json();
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return items
+      .filter((it: any) => it.type === 'video')
+      .slice(0, 3)
+      .map((v: any) => ({
+        type: 'video' as const,
+        title: v.title,
+        description: v.uploader,
+        url: `https://www.youtube.com/embed/${v.id}`,
+        thumbnail: v.thumbnail
+      }));
+  } catch {
+    return [];
+  }
+}
+
+async function searchYouTubePiped(query: string) {
+  const instances = [
+    'https://piped.video',
+    'https://piped.projectsegfau.lt',
+    'https://piped.videoapi.site'
+  ];
+  for (const base of instances) {
+    const videos = await tryPipedInstance(base, query);
+    if (videos.length > 0) return videos;
+  }
+  return [];
 }
 
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
+    if (!query || typeof query !== 'string') {
+      return NextResponse.json({ error: 'Missing query' }, { status: 400 });
+    }
 
-    // Get AI analysis
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are a knowledgeable teacher. Provide a concise explanation of the topic."
-        },
-        {
-          role: "user",
-          content: query
-        }
-      ]
-    });
-
-    const analysis = {
-      type: 'text',
-      title: 'AI Analysis',
-      description: completion.choices[0].message.content,
-      url: '#'
-    };
-
-    // Get related videos and images
-    const [videos, images] = await Promise.all([
-      searchYouTube(query),
-      searchImages(query)
+    const [analysis, videos, images] = await Promise.all([
+      searchWikipedia(query),
+      searchYouTubePiped(query),
+      searchWikimediaImages(query)
     ]);
 
-    return NextResponse.json({
-      results: [analysis, ...videos, ...images]
-    });
+    const results = [
+      ...(analysis ? [analysis] : []),
+      ...videos,
+      ...images
+    ];
+
+    return NextResponse.json({ results });
   } catch (error) {
     console.error('Search failed:', error);
     return NextResponse.json(
