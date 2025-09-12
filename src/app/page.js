@@ -1,29 +1,10 @@
 "use client";
 
-"use client";
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
 
 const SearchWithSidebar = dynamic(() => import('../components/SearchWithSidebar'), { ssr: false });
 const UploadChat = dynamic(() => import('../components/UploadChat'), { ssr: false });
-
-const MotionDiv = motion.div;
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2
-    }
-  }
-};
-
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 }
-};
 
 export default function Home() {
   const [active, setActive] = useState('search');

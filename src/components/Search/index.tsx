@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiSearch } from 'react-icons/fi';
-import type { HTMLMotionProps } from 'framer-motion';
+import Image from 'next/image';
 
 interface SearchResult {
   type: 'text' | 'video' | 'image';
@@ -110,7 +110,9 @@ export function Search() {
               </div>
             )}
             {result.type === 'image' && (
-              <img
+              <Image
+                width={800}
+                height={256}
                 src={result.url}
                 alt={result.title}
                 className="w-full h-48 object-cover"

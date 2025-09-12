@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { FiSearch } from 'react-icons/fi';
 import Image from 'next/image';
 
@@ -20,7 +20,7 @@ export default function SearchWithSidebar() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
 
-  const doSearch = useCallback(async () => {
+  const doSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     try {
@@ -37,18 +37,27 @@ export default function SearchWithSidebar() {
     } finally {
       setLoading(false);
     }
-  }, [query, filter]);
+  };
 
-  // Trigger search when filter changes and we have results
-  useEffect(() => {
-    if (results.length > 0 && query.trim()) {
-      doSearch();
+  const filtered = results.filter(r => {
+    if (filter === 'all') {
+      // For 'all' filter, limit images to 5
+      if (r.type === 'image') {
+        const imageResults = results.filter(result => result.type === 'image');
+        return imageResults.indexOf(r) < 5;
+      }
+      return true;
     }
-  }, [filter, doSearch, query, results.length]);
-
-  const filtered = results.filter(r => filter === 'all' ? true : r.type === filter);
-  const hasVideos = results.some(r => r.type === 'video');
-  const hasImages = results.some(r => r.type === 'image');
+    if (r.type === filter) {
+      // For image filter, limit to 6 images
+      if (filter === 'image') {
+        const imageResults = results.filter(result => result.type === 'image');
+        return imageResults.indexOf(r) < 10;
+      }
+      return true;
+    }
+    return false;
+  });
 
   return (
     <div className="flex h-full">
@@ -89,19 +98,7 @@ export default function SearchWithSidebar() {
         {loading && (<div className="flex justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"/></div>)}
         {!loading && filtered.length === 0 && (
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            {filter === 'video' && !hasVideos ? (
-              <div>
-                No videos from the current Piped instance. Try again or switch to All.
-                <button onClick={doSearch} className="ml-2 underline">Retry</button>
-              </div>
-            ) : filter === 'image' && !hasImages ? (
-              <div>
-                No images found via Wikimedia. Try a broader query or All.
-                <button onClick={doSearch} className="ml-2 underline">Retry</button>
-              </div>
-            ) : (
-              <p>Search results will appear here.</p>
-            )}
+            <p>Search results will appear here.</p>
           </div>
         )}
         <div className={filter === 'text' ? "space-y-6" : "grid grid-cols-1 md:grid-cols-2 gap-6"}>

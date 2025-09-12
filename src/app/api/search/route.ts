@@ -21,7 +21,7 @@ async function searchWikipedia(query: string) {
   };
 }
 
-async function searchGoogleImages(query: string, filter?: string) {
+async function searchGoogleImages(query: string) {
   try {
     // Google Images search URL
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch&tbs=isz:m`;
@@ -37,8 +37,7 @@ async function searchGoogleImages(query: string, filter?: string) {
     const imageMatches = html.match(/\["https:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp)"/g);
     if (!imageMatches) return [];
     
-    const imageCount = filter === 'image' ? 6 : 5;
-    return imageMatches.slice(0, imageCount).map((match, index) => {
+    return imageMatches.slice(0, 10).map((match, index) => {
       const url = match.replace(/^\["|"$/g, '');
       return {
         type: 'image' as const,
@@ -134,7 +133,7 @@ export async function POST(request: NextRequest) {
         searchGoogleVideos(query),
         searchYouTubePiped(query)
       ]).then(results => results.flat()),
-      searchGoogleImages(query, filter)
+      searchGoogleImages(query)
     ]);
 
     const results = [
