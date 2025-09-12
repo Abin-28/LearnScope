@@ -44,18 +44,24 @@ export default function SearchWithSidebar() {
 
   return (
     <div className="flex h-full">
-      <aside className="w-64 border-r dark:border-gray-700 p-4 space-y-4">
+      <aside className="w-64 border-r dark:border-gray-700 p-4 space-y-4 overflow-hidden">
         <div>
           <label className="text-xs text-gray-500 dark:text-gray-400">Search</label>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-1">
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doSearch()}
               placeholder="Search the web..."
-              className="flex-1 px-3 py-2 rounded-md border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+              className="flex-1 px-2 py-2 rounded-md border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm min-w-0"
             />
-            <button onClick={doSearch} className="px-3 py-2 rounded-md bg-blue-600 text-white"><FiSearch /></button>
+            <button 
+              onClick={doSearch} 
+              disabled={loading}
+              className="px-2 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              <FiSearch />
+            </button>
           </div>
         </div>
         <div>
@@ -90,9 +96,9 @@ export default function SearchWithSidebar() {
             )}
           </div>
         )}
-        <div className="space-y-6">
+        <div className={filter === 'image' ? "space-y-6" : filter === 'text' ? "space-y-6" : "grid grid-cols-1 md:grid-cols-2 gap-6"}>
           {filtered.map((item, index) => (
-            <div key={`${item.url}-${index}`} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            <div key={`${item.url}-${index}`} className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden ${item.type === 'text' && filter === 'text' ? 'border-l-4 border-blue-500' : ''}`}>
               {item.type === 'video' && (
                 <div className="aspect-video">
                   {item.url.includes('youtube.com/embed') ? (
@@ -131,14 +137,42 @@ export default function SearchWithSidebar() {
                   </div>
                 </div>
               )}
+              {item.type === 'text' && filter === 'text' && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Wikipedia Article</span>
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Quick Summary</h4>
+                </div>
+              )}
               <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">{item.title}</h3>
                 {item.description && (
-                  <p className="mt-2 text-gray-600 dark:text-gray-400">{item.description}</p>
+                  <div className="mt-2 text-gray-600 dark:text-gray-400">
+                    {item.type === 'text' && filter === 'text' ? (
+                      <div className="space-y-3">
+                        <p className="text-sm leading-relaxed">{item.description}</p>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Source: Wikipedia</p>
+                          <p className="text-sm leading-relaxed">{item.description}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed">{item.description}</p>
+                    )}
+                  </div>
                 )}
-                <a href={item.url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 mt-2 inline-block hover:underline">
-                  {item.type === 'video' ? 'Watch Video' : item.type === 'image' ? 'View Image' : 'Open'}
-                </a>
+                <div className="mt-4 flex items-center justify-between">
+                  <a href={item.url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline font-medium">
+                    {item.type === 'video' ? 'Watch Video' : item.type === 'image' ? 'View Image' : 'Read More'}
+                  </a>
+                  {item.type === 'text' && filter === 'text' && (
+                    <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                      Text Result
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}

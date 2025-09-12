@@ -37,7 +37,7 @@ async function searchGoogleImages(query: string) {
     const imageMatches = html.match(/\["https:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp)"/g);
     if (!imageMatches) return [];
     
-    return imageMatches.slice(0, 6).map((match, index) => {
+    return imageMatches.slice(0, 5).map((match, index) => {
       const url = match.replace(/^\["|"$/g, '');
       return {
         type: 'image' as const,
@@ -118,43 +118,6 @@ async function searchYouTubePiped(query: string) {
     if (videos.length > 0) return videos;
   }
   return [];
-}
-
-// Keep some fallback options
-async function searchFallbackImages(query: string) {
-  try {
-    // Unsplash as fallback
-    const url = `https://source.unsplash.com/800x600/?${encodeURIComponent(query)}`;
-    return [{
-      type: 'image' as const,
-      title: `${query} - Fallback Image`,
-      url: url,
-      thumbnail: url,
-      description: `Fallback image for ${query}`
-    }];
-  } catch {
-    return [];
-  }
-}
-
-async function searchFallbackVideos(query: string) {
-  try {
-    // Some educational video IDs as fallback
-    const fallbackVideos = [
-      'dQw4w9WgXcQ', // Sample video 1
-      'jNQXAC9IVRw'  // Sample video 2
-    ];
-    
-    return fallbackVideos.map((videoId, index) => ({
-      type: 'video' as const,
-      title: `${query} - Fallback Video ${index + 1}`,
-      description: `Fallback video for ${query}`,
-      url: `https://www.youtube.com/embed/${videoId}`,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    }));
-  } catch {
-    return [];
-  }
 }
 
 export async function POST(request: NextRequest) {
