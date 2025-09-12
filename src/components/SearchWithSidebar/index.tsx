@@ -91,22 +91,54 @@ export default function SearchWithSidebar() {
           </div>
         )}
         <div className="space-y-6">
-          {filtered.map(item => (
-            <div key={item.url} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+          {filtered.map((item, index) => (
+            <div key={`${item.url}-${index}`} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
               {item.type === 'video' && (
                 <div className="aspect-video">
-                  <iframe src={item.url} className="w-full h-full" allowFullScreen/>
+                  {item.url.includes('youtube.com/embed') ? (
+                    <iframe src={item.url} className="w-full h-full" allowFullScreen/>
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">🎥</div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Video Search Result</p>
+                        <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">View on {item.url.includes('pexels') ? 'Pexels' : 'Pixabay'}</a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {item.type === 'image' && (
-                <img src={item.url} alt={item.title} className="w-full h-64 object-cover" />
+                <div className="relative">
+                  <img 
+                    src={item.url} 
+                    alt={item.title} 
+                    className="w-full h-64 object-cover"
+                    onError={(e) => {
+                      // Fallback for broken images
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center hidden">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">🖼️</div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Image failed to load</p>
+                      <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">View Original</a>
+                    </div>
+                  </div>
+                </div>
               )}
               <div className="p-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
                 {item.description && (
                   <p className="mt-2 text-gray-600 dark:text-gray-400">{item.description}</p>
                 )}
-                <a href={item.url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 mt-2 inline-block">Open</a>
+                <a href={item.url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 mt-2 inline-block hover:underline">
+                  {item.type === 'video' ? 'Watch Video' : item.type === 'image' ? 'View Image' : 'Open'}
+                </a>
               </div>
             </div>
           ))}

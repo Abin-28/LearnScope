@@ -21,20 +21,62 @@ async function searchWikipedia(query: string) {
   };
 }
 
-async function searchWikimediaImages(query: string) {
+async function searchGoogleImages(query: string) {
   try {
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=3&prop=imageinfo&iiprop=url&format=json&origin=*`;
-    const res = await fetch(url, { next: { revalidate: 60 } });
-    const data = await res.json();
-    const pages = data?.query?.pages ? Object.values<any>(data.query.pages) : [];
-    return pages
-      .map((p: any) => p?.imageinfo?.[0]?.url)
-      .filter(Boolean)
-      .map((imgUrl: string) => ({
+    // Google Images search URL
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch&tbs=isz:m`;
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    const html = await response.text();
+    
+    // Extract image URLs from Google's JSON data
+    const imageMatches = html.match(/\["https:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp)"/g);
+    if (!imageMatches) return [];
+    
+    return imageMatches.slice(0, 6).map((match, index) => {
+      const url = match.replace(/^\["|"$/g, '');
+      return {
         type: 'image' as const,
-        title: query,
-        url: imgUrl,
-      }));
+        title: `${query} - Image ${index + 1}`,
+        url: url,
+        thumbnail: url,
+        description: `Images result for ${query}`
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function searchGoogleVideos(query: string) {
+  try {
+    // Google Videos search URL
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=vid`;
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    const html = await response.text();
+    
+    // Extract YouTube video IDs from Google's search results
+    const videoMatches = html.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/g);
+    if (!videoMatches) return [];
+    
+    const uniqueVideoIds = Array.from(new Set(videoMatches.map(match => match.match(/v=([a-zA-Z0-9_-]{11})/)?.[1]).filter(Boolean)));
+    
+    return uniqueVideoIds.slice(0, 4).map((videoId, index) => ({
+      type: 'video' as const,
+      title: `${query} - Video ${index + 1}`,
+      description: `Videos result for ${query}`,
+      url: `https://www.youtube.com/embed/${videoId}`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    }));
   } catch {
     return [];
   }
@@ -78,6 +120,43 @@ async function searchYouTubePiped(query: string) {
   return [];
 }
 
+// Keep some fallback options
+async function searchFallbackImages(query: string) {
+  try {
+    // Unsplash as fallback
+    const url = `https://source.unsplash.com/800x600/?${encodeURIComponent(query)}`;
+    return [{
+      type: 'image' as const,
+      title: `${query} - Fallback Image`,
+      url: url,
+      thumbnail: url,
+      description: `Fallback image for ${query}`
+    }];
+  } catch {
+    return [];
+  }
+}
+
+async function searchFallbackVideos(query: string) {
+  try {
+    // Some educational video IDs as fallback
+    const fallbackVideos = [
+      'dQw4w9WgXcQ', // Sample video 1
+      'jNQXAC9IVRw'  // Sample video 2
+    ];
+    
+    return fallbackVideos.map((videoId, index) => ({
+      type: 'video' as const,
+      title: `${query} - Fallback Video ${index + 1}`,
+      description: `Fallback video for ${query}`,
+      url: `https://www.youtube.com/embed/${videoId}`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
@@ -87,8 +166,11 @@ export async function POST(request: NextRequest) {
 
     const [analysis, videos, images] = await Promise.all([
       searchWikipedia(query),
-      searchYouTubePiped(query),
-      searchWikimediaImages(query)
+      Promise.all([
+        searchGoogleVideos(query),
+        searchYouTubePiped(query)
+      ]).then(results => results.flat()),
+      searchGoogleImages(query)
     ]);
 
     const results = [
