@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import dynamic from 'next/dynamic';
-import { FiFile, FiImage, FiSend, FiEye } from 'react-icons/fi';
+import Image from 'next/image';
+import { FiFile, FiImage, FiSend, FiEye, FiInfo } from 'react-icons/fi';
 
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
@@ -98,6 +99,20 @@ export function TopicUploader() {
   const [isAnswering, setIsAnswering] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
   const [showExtractedPreview, setShowExtractedPreview] = useState(false);
+  const resetUploader = () => {
+    setMessages([]);
+    setInputMessage('');
+    setIsAnswering(false);
+    setShowFullPreview(false);
+    setShowExtractedPreview(false);
+    setError(null);
+    setUploading(false);
+    setProcessFullPdf(false);
+    setCurrentDoc(prev => {
+      if (prev?.url) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  };
 
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
   const tokenize = (s: string) => normalize(s).split(/\s+/).filter(Boolean);
@@ -335,14 +350,14 @@ export function TopicUploader() {
         <div
           {...getRootProps()}
           className={`
-            border-2 border-dashed rounded-xl p-8 
+            border-2 border-dashed rounded-xl p-6 relative
             transition-all duration-200 cursor-pointer
             ${isDragActive ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-300 hover:border-blue-400 dark:border-gray-600'}
           `}
         >
           <input {...getInputProps()} />
           <div className="flex flex-col items-center">
-            <div className="w-48 h-48">
+            <div className="w-32 h-32">
               <Lottie 
                 animationData={uploadAnimation} 
                 loop={true}
@@ -365,6 +380,30 @@ export function TopicUploader() {
               />
               Process full PDF (may be slow)
             </label>
+            
+            <div className="mt-4 w-full">
+              <div className="rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-4">
+                <div className="flex items-center gap-2 mb-2 text-gray-700 dark:text-gray-200">
+                  <FiInfo className="w-4 h-4" />
+                  <span className="text-sm font-medium">Before you upload</span>
+                </div>
+                <ul className="list-disc pl-5 space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                  <li>
+                    Upload <span className="font-medium">one file at a time</span>. Multiple documents are not supported yet.
+                  </li>
+                  <li>
+                    PDFs: We extract up to <span className="font-medium">20 pages</span> by default.
+                    Turn on <span className="font-medium">“Process full PDF”</span> to process everything (slower).
+                  </li>
+                  <li>
+                    Images: Text is extracted via a <span className="font-medium">free OCR service</span>; avoid sensitive data. Large images may take longer.
+                  </li>
+                  <li>
+                    Preview shows the <span className="font-medium">actual file</span>. Use <span className="font-medium">“Preview Extracted Text”</span> to verify OCR output.
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -388,6 +427,16 @@ export function TopicUploader() {
   // Show chat interface
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto">
+      <div className="flex items-center justify-between pb-5">
+        <div className="text-sm text-gray-600 dark:text-gray-300">Chatting about: <span className="font-medium">{currentDoc.name}</span></div>
+        <button
+          onClick={resetUploader}
+          className="text-xs px-2 py-1 rounded border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+          aria-label="Upload new document"
+        >
+          Upload New Document
+        </button>
+      </div>
       {/* Chat messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
@@ -427,11 +476,21 @@ export function TopicUploader() {
                   {showFullPreview && (
                     <div className="mt-2">
                       {currentDoc.type === 'application/pdf' ? (
-                        <object data={currentDoc.url} type="application/pdf" className="w-full h-96 rounded border">
-                          <a href={currentDoc.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Open PDF</a>
-                        </object>
+                        <iframe
+                          src={currentDoc.url}
+                          title={currentDoc.name}
+                          className="w-full h-96 rounded border"
+                          allow="fullscreen"
+                        />
                       ) : currentDoc.type.startsWith('image/') ? (
-                        <img src={currentDoc.url} alt={currentDoc.name} className="max-h-96 w-auto rounded border" />
+                        <Image 
+                          src={currentDoc.url} 
+                          alt={currentDoc.name} 
+                          width={800} 
+                          height={600} 
+                          className="max-h-96 w-auto rounded border" 
+                          unoptimized
+                        />
                       ) : (
                         <div className="p-2 bg-gray-50 dark:bg-gray-600 rounded text-xs max-h-40 overflow-y-auto">
                           <pre className="whitespace-pre-wrap">{currentDoc.content}</pre>
