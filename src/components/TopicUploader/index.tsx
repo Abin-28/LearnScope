@@ -179,36 +179,21 @@ export function TopicUploader() {
 
   const extractImageText = async (file: File): Promise<string | undefined> => {
     try {
-      // Preprocess image: upscale + grayscale + light thresholding
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.src = url;
-      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-      const scale = 2;
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth * scale;
-      canvas.height = img.naturalHeight * scale;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas 2D context unavailable');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const dataBuf = imageData.data;
-      for (let i = 0; i < dataBuf.length; i += 4) {
-        const r = dataBuf[i], g = dataBuf[i + 1], b = dataBuf[i + 2];
-        const y = 0.299 * r + 0.587 * g + 0.114 * b;
-        const v = y > 200 ? 255 : y < 60 ? 0 : y; // simple threshold
-        dataBuf[i] = dataBuf[i + 1] = dataBuf[i + 2] = v;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      URL.revokeObjectURL(url);
-
-      const Tesseract: any = (await import('tesseract.js')).default;
-      const { data } = await Tesseract.recognize(canvas, 'eng', {
-        preserve_interword_spaces: '1',
-        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_/.,()[]:%+&@# ',
-        tessedit_pageseg_mode: 6
+      // Use server-side Google Vision API for better OCR accuracy
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/ocr', {
+        method: 'POST',
+        body: formData,
       });
-      return (data?.text || '').trim();
+      
+      if (!response.ok) {
+        throw new Error(`OCR API failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.text || '';
     } catch (e) {
       console.error('OCR error:', e);
       return undefined;
