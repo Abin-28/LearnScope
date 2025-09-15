@@ -1,4 +1,4 @@
-# AI Teaching Platform
+# AI Learning Platform
 
 A comprehensive educational platform that combines intelligent search capabilities with document-based Q&A functionality. This platform allows users to search the web for educational content and upload documents for AI-powered question answering.
 
@@ -48,7 +48,7 @@ A comprehensive educational platform that combines intelligent search capabiliti
 ## 📁 Project Structure
 
 ```
-teaching-ai-platform/
+LearnScope/
 ├── src/
 │   ├── app/
 │   │   ├── api/

@@ -12,7 +12,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Teaching Platform</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">LearnScope - AI Learning Platform</h1>
           <div className="flex gap-2">
             <button onClick={() => setActive('search')} className={`px-3 py-2 rounded-md text-sm ${active==='search'?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 border dark:border-gray-700'}`}>Search</button>
             <button onClick={() => setActive('upload')} className={`px-3 py-2 rounded-md text-sm ${active==='upload'?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 border dark:border-gray-700'}`}>Upload Document</button>
