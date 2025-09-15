@@ -21,13 +21,6 @@ A comprehensive educational platform that combines intelligent search capabiliti
 - **Context-Aware Responses**: Answers based on uploaded document content
 - **Interactive Chat**: Real-time conversation interface with chat history
 
-### 🎨 Modern UI/UX
-- **Dark/Light Mode**: Automatic theme switching based on system preferences
-- **Smooth Animations**: Framer Motion powered transitions and micro-interactions
-- **Intuitive Navigation**: Clean sidebar-based interface
-- **Loading States**: Visual feedback for all async operations
-- **Error Handling**: Graceful error states with retry options
-
 ## 🛠️ Tech Stack
 
 ### Frontend
