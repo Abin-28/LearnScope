@@ -1,36 +1,216 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# AI Teaching Platform
 
-## Getting Started
+A comprehensive educational platform that combines intelligent search capabilities with document-based Q&A functionality. This platform allows users to search the web for educational content and upload documents for AI-powered question answering.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### 🔍 Intelligent Search System
+- **Multi-source Search**: Integrates Wikipedia, Google Images, and YouTube videos
+- **Smart Filtering**: Filter results by type (All, Text, Images, Videos)
+- **Dynamic Layout**: 
+  - Text results: Full-width with enhanced Wikipedia content display
+  - Image results: 2-column grid (6 images for Image toggle, 5 for All toggle)
+  - Video results: 2-column grid with embedded YouTube videos
+- **Real-time Search**: Instant search with loading states and error handling
+- **Responsive Design**: Optimized for desktop and mobile devices
+
+### 📄 Document Upload & Q&A
+- **Multi-format Support**: PDF, images (JPG, PNG, GIF), and text files
+- **OCR Processing**: Automatic text extraction from images using Tesseract.js
+- **AI-Powered Q&A**: Google Gemini integration for intelligent question answering
+- **Context-Aware Responses**: Answers based on uploaded document content
+- **Interactive Chat**: Real-time conversation interface with chat history
+
+### 🎨 Modern UI/UX
+- **Dark/Light Mode**: Automatic theme switching based on system preferences
+- **Smooth Animations**: Framer Motion powered transitions and micro-interactions
+- **Intuitive Navigation**: Clean sidebar-based interface
+- **Loading States**: Visual feedback for all async operations
+- **Error Handling**: Graceful error states with retry options
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Next.js 15.0.4** - React framework with App Router
+- **React 19.0.0** - UI library with latest features
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first CSS framework
+- **Framer Motion** - Animation library
+- **React Icons** - Icon components
+- **React Dropzone** - File upload handling
+
+### Backend & APIs
+- **Next.js API Routes** - Serverless API endpoints
+- **Google Generative AI (Gemini)** - AI question answering
+- **OpenAI API** - Additional AI capabilities
+- **Tesseract.js** - OCR for image text extraction
+- **PDF.js** - PDF text extraction
+
+### External Services
+- **Wikipedia API** - Text content and summaries
+- **Google Images** - Image search results
+- **YouTube/Piped API** - Video content
+- **Unsplash** - Fallback image service
+
+## 📁 Project Structure
+
+```
+teaching-ai-platform/
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── qa/route.ts          # Q&A API endpoint
+│   │   │   └── search/route.ts      # Search API endpoint
+│   │   ├── fonts/                   # Custom fonts (Geist)
+│   │   ├── globals.css              # Global styles
+│   │   ├── layout.js                # Root layout
+│   │   └── page.js                  # Main page component
+│   └── components/
+│       ├── Search/
+│       │   └── index.tsx            # Basic search component
+│       ├── SearchWithSidebar/
+│       │   └── index.tsx            # Advanced search with sidebar
+│       ├── TopicUploader/
+│       │   └── index.tsx            # Document upload & processing
+│       └── UploadChat/
+│           └── index.tsx            # Chat interface for Q&A
+├── next.config.mjs                  # Next.js configuration
+├── tailwind.config.js               # Tailwind CSS configuration
+├── tsconfig.json                    # TypeScript configuration
+└── package.json                     # Dependencies and scripts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Getting Started
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Prerequisites
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun package manager
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Installation
 
-## Learn More
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd teaching-ai-platform
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   # or
+   pnpm install
+   # or
+   bun install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Set up environment variables**
+   Create a `.env.local` file in the root directory:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Run the development server**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
 
-## Deploy on Vercel
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔧 How It Works
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Search System
+1. **User Input**: Enter search query in the sidebar
+2. **API Processing**: 
+   - Wikipedia API for text content
+   - Google Images API for visual content
+   - YouTube/Piped API for video content
+3. **Result Processing**: Filter and format results based on type
+4. **Display**: Render results in appropriate layout (grid/list)
+
+### Document Upload & Q&A
+1. **File Upload**: Drag & drop or select files (PDF, images, text)
+2. **Text Extraction**: 
+   - PDF: Extract text using PDF.js
+   - Images: OCR processing with Tesseract.js
+   - Text files: Direct reading
+3. **AI Processing**: Send extracted text to Gemini API
+4. **Q&A Interface**: Interactive chat for asking questions
+5. **Context-Aware Responses**: AI answers based on document content
+
+### Search Features Explained
+
+#### Search Sidebar
+- **Search Input**: Real-time search with Enter key support
+- **Filter Toggles**: 
+  - **All**: Shows 5 images + all text/video results
+  - **Text**: Full-width Wikipedia articles with enhanced formatting
+  - **Image**: 2-column grid showing 6 images
+  - **Video**: 2-column grid with embedded YouTube videos
+
+#### Upload Sidebar
+- **File Drop Zone**: Drag & drop interface with visual feedback
+- **Supported Formats**: PDF, JPG, PNG, GIF, TXT
+- **Processing Status**: Real-time upload and extraction progress
+- **Chat History**: Conversation log with user questions and AI responses
+
+## 🎯 Key Components
+
+### SearchWithSidebar
+The main search interface featuring:
+- Intelligent multi-source search
+- Dynamic result filtering
+- Responsive grid layouts
+- Enhanced text display for Wikipedia content
+- Image optimization with Next.js Image component
+
+### TopicUploader
+Document processing component with:
+- Multi-format file support
+- OCR text extraction
+- Real-time processing feedback
+- Error handling and retry mechanisms
+- Integration with AI Q&A system
+
+### UploadChat
+Interactive Q&A interface featuring:
+- Real-time chat functionality
+- Context-aware AI responses
+- Conversation history
+- Clean, intuitive design
+
+## 🔒 Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `GEMINI_API_KEY` | Google Gemini API key for Q&A | Yes |
+| `OPENAI_API_KEY` | OpenAI API key (optional) | No |
+
+## 📱 Responsive Design
+
+The platform is fully responsive and optimized for:
+- **Desktop**: Full sidebar + main content layout
+- **Tablet**: Adaptive grid layouts
+- **Mobile**: Stacked layout with collapsible sidebar
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+1. Push code to GitHub
+2. Connect repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy automatically
+
+### Other Platforms
+- **Netlify**: Static export with API routes
+- **Railway**: Full-stack deployment
+- **Docker**: Containerized deployment
