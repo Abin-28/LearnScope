@@ -91,7 +91,6 @@ teaching-ai-platform/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd teaching-ai-platform
    ```
 
 2. **Install dependencies**
@@ -162,31 +161,6 @@ teaching-ai-platform/
 - **Supported Formats**: PDF, JPG, PNG, GIF, TXT
 - **Processing Status**: Real-time upload and extraction progress
 - **Chat History**: Conversation log with user questions and AI responses
-
-## 🎯 Key Components
-
-### SearchWithSidebar
-The main search interface featuring:
-- Intelligent multi-source search
-- Dynamic result filtering
-- Responsive grid layouts
-- Enhanced text display for Wikipedia content
-- Image optimization with Next.js Image component
-
-### TopicUploader
-Document processing component with:
-- Multi-format file support
-- OCR text extraction
-- Real-time processing feedback
-- Error handling and retry mechanisms
-- Integration with AI Q&A system
-
-### UploadChat
-Interactive Q&A interface featuring:
-- Real-time chat functionality
-- Context-aware AI responses
-- Conversation history
-- Clean, intuitive design
 
 ## 🔒 Environment Variables
 
