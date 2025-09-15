@@ -81,6 +81,7 @@ interface UploadedDocument {
   id: string;
   name: string;
   type: string;
+  url: string;
   content: string;
   chunks: TextChunk[];
 }
@@ -96,6 +97,7 @@ export function TopicUploader() {
   const [inputMessage, setInputMessage] = useState('');
   const [isAnswering, setIsAnswering] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  const [showExtractedPreview, setShowExtractedPreview] = useState(false);
 
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
   const tokenize = (s: string) => normalize(s).split(/\s+/).filter(Boolean);
@@ -136,19 +138,39 @@ export function TopicUploader() {
 
   const extractPdfText = async (file: File): Promise<string | undefined> => {
     try {
+      // Import pdf.js, align worker version to library version, fallback to disableWorker
       const pdfjs: any = await import('pdfjs-dist');
       const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = (pdfjs as any).getDocument({ data: arrayBuffer });
-      const pdf = await loadingTask.promise;
-      let fullText = '';
-      const maxPages = processFullPdf ? pdf.numPages : Math.min(pdf.numPages, 20);
-      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        const strings = textContent.items.map((it: any) => (it.str || '')).join(' ');
-        fullText += strings + '\n';
+      try {
+        if ((pdfjs as any)?.GlobalWorkerOptions) {
+          const ver = (pdfjs as any).version || '4.6.82';
+          (pdfjs as any).GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${ver}/build/pdf.worker.min.mjs`;
+        }
+        const loadingTask = (pdfjs as any).getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        const maxPages = processFullPdf ? pdf.numPages : Math.min(pdf.numPages, 20);
+        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const strings = textContent.items.map((it: any) => (it.str || '')).join(' ');
+          fullText += strings + '\n';
+        }
+        return fullText.trim();
+      } catch (primaryError) {
+        // Retry without worker
+        const loadingTask = (pdfjs as any).getDocument({ data: arrayBuffer, disableWorker: true });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        const maxPages = processFullPdf ? pdf.numPages : Math.min(pdf.numPages, 20);
+        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const strings = textContent.items.map((it: any) => (it.str || '')).join(' ');
+          fullText += strings + '\n';
+        }
+        return fullText.trim();
       }
-      return fullText.trim();
     } catch (e) {
       console.error('PDF extract error:', e);
       return undefined;
@@ -157,8 +179,35 @@ export function TopicUploader() {
 
   const extractImageText = async (file: File): Promise<string | undefined> => {
     try {
+      // Preprocess image: upscale + grayscale + light thresholding
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.src = url;
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth * scale;
+      canvas.height = img.naturalHeight * scale;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas 2D context unavailable');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const dataBuf = imageData.data;
+      for (let i = 0; i < dataBuf.length; i += 4) {
+        const r = dataBuf[i], g = dataBuf[i + 1], b = dataBuf[i + 2];
+        const y = 0.299 * r + 0.587 * g + 0.114 * b;
+        const v = y > 200 ? 255 : y < 60 ? 0 : y; // simple threshold
+        dataBuf[i] = dataBuf[i + 1] = dataBuf[i + 2] = v;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      URL.revokeObjectURL(url);
+
       const Tesseract: any = (await import('tesseract.js')).default;
-      const { data } = await Tesseract.recognize(file, 'eng');
+      const { data } = await Tesseract.recognize(canvas, 'eng', {
+        preserve_interword_spaces: '1',
+        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_/.,()[]:%+&@# ',
+        tessedit_pageseg_mode: 6
+      });
       return (data?.text || '').trim();
     } catch (e) {
       console.error('OCR error:', e);
@@ -195,15 +244,21 @@ export function TopicUploader() {
       }
 
       const chunks = chunkText(content);
+      const url = URL.createObjectURL(file);
       const doc: UploadedDocument = {
         id: Math.random().toString(36).substr(2, 9),
         name: file.name,
         type: file.type,
+        url,
         content,
         chunks
       };
 
-      setCurrentDoc(doc);
+      // Revoke previous object URL if any
+      setCurrentDoc(prev => {
+        if (prev?.url) URL.revokeObjectURL(prev.url);
+        return doc;
+      });
       
       // Initialize chat with preview message
       setMessages([
@@ -368,15 +423,39 @@ export function TopicUploader() {
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
                     Preview: {currentDoc.content.slice(0, 200)}...
                   </p>
-                  <button
-                    onClick={() => setShowFullPreview(!showFullPreview)}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    <FiEye className="w-3 h-3" />
-                    {showFullPreview ? 'Hide' : 'Preview'} Full Document
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setShowFullPreview(!showFullPreview)}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      <FiEye className="w-3 h-3" />
+                      {showFullPreview ? 'Hide' : 'Preview'} Full Document
+                    </button>
+                    <button
+                      onClick={() => setShowExtractedPreview(!showExtractedPreview)}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      <FiEye className="w-3 h-3" />
+                      {showExtractedPreview ? 'Hide' : 'Preview'} Extracted Text
+                    </button>
+                  </div>
                   {showFullPreview && (
-                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-600 rounded text-xs max-h-40 overflow-y-auto">
+                    <div className="mt-2">
+                      {currentDoc.type === 'application/pdf' ? (
+                        <object data={currentDoc.url} type="application/pdf" className="w-full h-96 rounded border">
+                          <a href={currentDoc.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Open PDF</a>
+                        </object>
+                      ) : currentDoc.type.startsWith('image/') ? (
+                        <img src={currentDoc.url} alt={currentDoc.name} className="max-h-96 w-auto rounded border" />
+                      ) : (
+                        <div className="p-2 bg-gray-50 dark:bg-gray-600 rounded text-xs max-h-40 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap">{currentDoc.content}</pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {showExtractedPreview && (
+                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-600 rounded text-xs max-h-60 overflow-y-auto">
                       <pre className="whitespace-pre-wrap">{currentDoc.content}</pre>
                     </div>
                   )}
