@@ -162,6 +162,24 @@ LearnScope/
 | `GEMINI_API_KEY` | Google Gemini API key for Q&A | Yes |
 | `OPENAI_API_KEY` | OpenAI API key (optional) | No |
 
+### Get a free Gemini API key
+
+1. Go to Google AI Studio (`https://aistudio.google.com`).
+2. Sign in with your Google account.
+3. Open the left sidebar → API Keys → Create API key.
+4. Choose "Create API key in Google AI Studio" (no Cloud project needed) and copy the key.
+5. Add it to `.env.local`:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+6. Restart the dev server.
+
+Recommended model: `gemini-1.5-flash` (used by this project in `src/app/api/qa/route.ts`). It’s fast and has a more generous free-tier RPM than `gemini-1.5-pro`.
+
+Notes:
+- Free-tier can return 503 “model overloaded” during spikes. Just retry with backoff.
+- Keep prompts short and cache answers where possible to stay within limits.
+
 ## 📱 Responsive Design
 
 The platform is fully responsive and optimized for:
