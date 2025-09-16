@@ -91,6 +91,7 @@ export function TopicUploader() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processFullPdf, setProcessFullPdf] = useState(false);
+  const MAX_IMAGE_SIZE_BYTES = 1024 * 1024; // 1MB limit for OCR service
   
   // Chat state
   const [currentDoc, setCurrentDoc] = useState<UploadedDocument | null>(null);
@@ -231,11 +232,17 @@ export function TopicUploader() {
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
+    const file = acceptedFiles[0];
+    // Enforce OCR.space 1MB size limit for images to avoid upstream failures
+    if (file && file.type.startsWith('image/') && file.size > MAX_IMAGE_SIZE_BYTES) {
+      setError('Image is too large (>1 MB). Please upload an image up to 1 MB.');
+      return;
+    }
+
     setUploading(true);
     setError(null);
     
     try {
-      const file = acceptedFiles[0]; // Only take first file
       const content = await readFileContent(file);
       
       if (!content) {
@@ -388,6 +395,9 @@ export function TopicUploader() {
                   <span className="text-sm font-medium">Before you upload</span>
                 </div>
                 <ul className="list-disc pl-5 space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                  <li>
+                    Images must be <span className="font-medium">≤ 1 MB</span> due to OCR limits.
+                  </li>
                   <li>
                     Upload <span className="font-medium">one file at a time</span>. Multiple documents are not supported yet.
                   </li>
